@@ -1,4 +1,4 @@
-app/build.gradleplugins {
+plugins {
     id 'com.android.application'
 }
 
@@ -18,3 +18,26 @@ android {
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
 }
+
+On Wed, Sep 23, 2026, 13:55 Masoud Khosro <masoudkhosrokaj89@gmail.com> wrote:
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.carlauncher'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.carlauncher'
+        minSdk 23
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+}
+

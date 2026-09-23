@@ -3,40 +3,55 @@ package com.carlauncher;
 import android.app.Activity;
 import android.os.Bundle;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
-import android.provider.Settings;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
     private static final int PICK_IMAGE = 100;
-
-    private LinearLayout root;
+    private ImageView backgroundImage;
+    private SharedPreferences preferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        preferences = getSharedPreferences("launcher", MODE_PRIVATE);
         buildLauncher();
+
+        String savedImage = preferences.getString("wallpaper", null);
+
+        if (savedImage != null) {
+            try {
+                backgroundImage.setImageURI(Uri.parse(savedImage));
+            } catch (Exception e) {
+                // اگر عکس دیگر در دسترس نبود، پس‌زمینه پیش‌فرض می‌ماند
+            }
+        }
     }
 
     private void buildLauncher() {
 
-        root = new LinearLayout(this);
+        LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.HORIZONTAL);
-        root.setGravity(Gravity.CENTER_VERTICAL);
         root.setBackgroundColor(Color.rgb(15, 15, 18));
         root.setPadding(30, 30, 20, 30);
+
+        backgroundImage = new ImageView(this);
+        backgroundImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        backgroundImage.setBackgroundColor(Color.rgb(15, 15, 18));
 
         LinearLayout main = new LinearLayout(this);
         main.setOrientation(LinearLayout.VERTICAL);
         main.setGravity(Gravity.CENTER);
+        main.setPadding(20, 20, 20, 20);
+
         main.setLayoutParams(new LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -57,26 +72,26 @@ public class MainActivity extends Activity {
         wallpaper.setTextSize(20);
         wallpaper.setGravity(Gravity.CENTER);
 
-        GradientDrawable wallpaperBg = new GradientDrawable();
-        wallpaperBg.setColor(Color.rgb(40, 40, 45));
-        wallpaperBg.setCornerRadius(25);
-        wallpaper.setBackground(wallpaperBg);
+        GradientDrawable buttonBg = new GradientDrawable();
+        buttonBg.setColor(Color.rgb(40, 40, 45));
+        buttonBg.setCornerRadius(25);
 
-        LinearLayout.LayoutParams wallpaperParams =
+        wallpaper.setBackground(buttonBg);
+
+        LinearLayout.LayoutParams buttonParams =
                 new LinearLayout.LayoutParams(320, 70);
 
-        wallpaperParams.setMargins(0, 40, 0, 0);
+        buttonParams.setMargins(0, 40, 0, 0);
 
-        main.addView(wallpaper, wallpaperParams);
+        main.addView(wallpaper, buttonParams);
 
         wallpaper.setOnClickListener(v -> {
 
-            Intent intent = new Intent(
-                    Intent.ACTION_OPEN_DOCUMENT
-            );
-
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.setType("image/*");
             intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
 
             startActivityForResult(intent, PICK_IMAGE);
         });
@@ -107,7 +122,15 @@ public class MainActivity extends Activity {
             edge.addView(button, params);
         }
 
-        root.addView(main);
+        root.addView(backgroundImage,
+                new LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        1
+                ));
+
+        backgroundImage.addView(main);
+
         root.addView(edge);
 
         setContentView(root);
@@ -133,18 +156,24 @@ public class MainActivity extends Activity {
 
             if (imageUri != null) {
 
-                getContentResolver().takePersistableUriPermission(
-                        imageUri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION
-                );
+                try {
+                    getContentResolver().takePersistableUriPermission(
+                            imageUri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    );
+                } catch (Exception e) {
+                    // بعضی گالری‌ها اجازه ذخیره دائمی نمی‌دهند
+                }
 
-                getWindow().getDecorView().setBackground(
-                        null
-                );
+                backgroundImage.setImageURI(imageUri);
+
+                preferences.edit()
+                        .putString("wallpaper", imageUri.toString())
+                        .apply();
 
                 Toast.makeText(
                         this,
-                        "تصویر انتخاب شد",
+                        "تصویر زمینه ذخیره شد",
                         Toast.LENGTH_SHORT
                 ).show();
             }
